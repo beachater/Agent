@@ -6,8 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
-use GuzzleHttp\Psr7;
-
 class LevelerController extends Controller
 {
     public function showForm()
