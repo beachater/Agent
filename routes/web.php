@@ -12,7 +12,10 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-
+ 
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/rewriter', 'App\Http\Controllers\RewriterController@showForm');
+Route::post('/rewriter', 'App\Http\Controllers\RewriterController@processForm');
