@@ -8,7 +8,7 @@
         <div class="card-body">
           <h2 class="card-title text-center mb-4">AI Tutor Assistant</h2>
 
-          <form action="{{ url('/tutor') }}" method="POST">
+          <form action="{{ url('/tutor') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
             <div class="mb-3">
@@ -30,8 +30,8 @@
             </div>
 
             <div class="mb-3 d-none" id="pdf-input">
-              <label class="form-label">PDF Path</label>
-              <input type="text" class="form-control" name="pdf_path">
+              <label class="form-label">Upload PDF</label>
+              <input type="file" class="form-control" name="pdf_file" accept="application/pdf">
             </div>
 
             <div class="mb-3">
