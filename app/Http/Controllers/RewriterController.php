@@ -20,7 +20,7 @@ class RewriterController extends Controller
     set_time_limit(0);
 
     $validated = $request->validate([
-        'learner_type' => 'required|string',
+        'learning_speed' => 'required|string',
         'input_text' => 'nullable|string',
         'pdf' => 'nullable|file|mimes:pdf|max:10240',
     ]);
@@ -31,10 +31,10 @@ class RewriterController extends Controller
         $fullPdfPath = storage_path('app/' . $pdfPath);
     }
 
-    $response = Http::timeout(60)->post('http://192.168.50.123:5001/rewriter', [
-        'learning_type' => $validated['learner_type'],
+    $response = Http::timeout(0)->post('http://192.168.50.123:5001/rewriter', [
+        'learning_speed' => $validated['learning_speed'],
         'input_type' => $validated['input_text'] ?? '',
-        'pdf_path' => $pdfPath ? $fullPdfPath : ''
+        'pdf_path' => $pdfPath['pdf_path'] ?? ''
     ]);
 
     if ($response->failed()) {

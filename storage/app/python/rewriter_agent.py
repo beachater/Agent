@@ -1,91 +1,109 @@
-import os
-import re
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from langchain_ollama import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.document_loaders import PyPDFLoader
+from fastapi import FastAPI, HTTPException, UploadFile, Form # type: ignore
+from fastapi.responses import JSONResponse # type: ignore
+from pydantic import BaseModel, ValidationError # type: ignore
+from langchain_community.llms import Ollama # type: ignore
+from langchain_core.prompts import ChatPromptTemplate # type: ignore
+from langchain_community.document_loaders.pdf import PyPDFLoader # type: ignore
+import shutil, os, re, tempfile, uvicorn, traceback # type: ignore
 
-# Create FastAPI app
-app = FastAPI()
-
-# Prompt templates
 manual_topic_template = """
-You are an experienced and friendly virtual tutor. Your goal is to rewrite educational content based on the student's learning level.
+You are an experienced and friendly virtual tutor who helps students understand academic topics clearly and effectively.
 
-- Learning level: {learning_type}
-- Topic: {input_type}
+Your goal is to explain the topic in a way that matches the student's grade level and learning needs.
 
-Please rewrite the above topic to make it more suitable and easier to understand for this specific learner type.
+Parameters:
+- Learning type: {learning_type}
+- Topic: {topic}
+
+Instructions:
+- Provide a detailed explanation of the topic.
+- Use examples, analogies, or simple breakdowns appropriate for the student's grade level.
+- Address any specific learning needs or context provided.
+- Do NOT just define terms — aim to build understanding.
+- summarize — explain thoroughly.
+- Use clear language, step-by-step logic, and relevant examples.
+- Adapt your explanation based on any additional learning notes provided.
+
+Respond ONLY with the explanation text (no extra commentary).
 """
 
 pdf_topic_template = """
-You are a knowledgeable and supportive virtual tutor. Rewrite the following educational content to match the learner's level of understanding.
+You are a knowledgeable and supportive virtual tutor.
 
-- Learning level: {learning_type}
-- Extracted Content: {input_type}
+You will receive content extracted from a textbook or document (such as a PDF). Your task is to explain this content in a way that is understandable to a student at the given grade level.
 
-Ensure the rewritten content is engaging, simplified, and helpful for the given learning level.
+Parameters:
+- Learning type: {learning_type}
+- Extracted Content: {topic}
+
+Instructions:
+- Provide a detailed explanation of the topic.
+- Use examples, analogies, or simple breakdowns appropriate for the student's grade level.
+- Address any specific learning needs or context provided.
+- Do NOT just define terms — aim to build understanding.
+- Do NOT summarize — explain thoroughly.
+- Use clear language, step-by-step logic, and relevant examples.
+- Adapt your explanation based on any additional learning notes provided.
+
+Respond ONLY with the explanation text (no extra commentary).
 """
 
-# Initialize model and prompt
-model = OllamaLLM(model="llama3")
+model = Ollama(model="llama3")
 manual_prompt = ChatPromptTemplate.from_template(manual_topic_template)
 pdf_prompt = ChatPromptTemplate.from_template(pdf_topic_template)
 
-# Pydantic input model
 class RewriterInput(BaseModel):
+    input_type: str = ""
+    pdf_path: str = ""
     learning_type: str
-    input_type: str = ""  # use 'pdf' for pdf input, else manual text
-    pdf_path: str = ""    # local PDF path
 
-# PDF text extraction (first 2 pages)
-def extract_text_from_pdf(path: str) -> str:
-    if not os.path.exists(path):
+def load_pdf_content(pdf_path: str) -> str:
+    if not os.path.exists(pdf_path):
         raise FileNotFoundError("PDF file not found.")
-    loader = PyPDFLoader(path)
-    pages = loader.load()
-    return " ".join([page.page_content for page in pages[:2]])
+    loader = PyPDFLoader(pdf_path)
+    documents = loader.load()
+    return "\n".join(doc.page_content for doc in documents)
 
-# Output cleaner
+# Function to clean the output from formatting artifacts
 def clean_output(text: str) -> str:
     text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
     text = re.sub(r"\*(.*?)\*", r"\1", text)
     text = re.sub(r"^\s*[\*\-]\s*", "", text, flags=re.MULTILINE)
     return text.strip()
 
-# Main tutor function
-def generate_output(learning_type: str, input_type: str, pdf_path: str = "") -> str:
+def generate_output(input_type: str, pdf_path: str =  "", learner_type: str = "") -> str:
     if input_type == "pdf":
-        topic = extract_text_from_pdf(pdf_path)
+        topic = load_pdf_content(pdf_path)
         prompt = pdf_prompt
     else:
-        topic = input_type
+        topic = input_type  # ← manual topic entered directly
         prompt = manual_prompt
 
+    # Compose input dict for prompt
     prompt_input = {
-        "learning_type": learning_type,
-        "input_type": topic  # <-- this fixes the error
+        "learner_type": learner_type,
+        "topic": topic
     }
 
     chain = prompt | model
     result = chain.invoke(prompt_input)
     return clean_output(result)
 
-# FastAPI route
+app = FastAPI()
+
 @app.post("/rewriter")
-def rewrite_text(data: RewriterInput):
+async def rewriter_api(input: RewriterInput):
     try:
         output = generate_output(
-            learning_type=data.learning_type,
-            input_type=data.input_type,
-            pdf_path=data.pdf_path
+            input_type=input.input_type,
+            pdf_path=input.pdf_path,
+            learner_type=input.learner_type
         )
         return {"output": output}
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.errors())
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Run app locally with: `python rewriter.py`
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("rewriter:app", host="127.0.0.1", port=5001, reload=True)
+    uvicorn.run("rewriter_agent:app", host="127.0.0.1", port=5001, reload=True)

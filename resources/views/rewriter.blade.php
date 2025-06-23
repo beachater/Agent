@@ -108,8 +108,8 @@
 
             <!-- Learning Speed Selection -->
             <div class="mb-4">
-                <label for="learner_type" class="form-label">Learning Pace</label>
-                <select class="form-select" id="learner_type" name="learner_type" required>
+                <label for="learning_speed" class="form-label">Learning Pace</label>
+                <select class="form-select" id="learning_speed" name="learning_speed" required>
                     <option value="" disabled selected>Select learning pace</option>
                     <option value="slow">Slow Learner</option>
                     <option value="average">Average Learner</option>
