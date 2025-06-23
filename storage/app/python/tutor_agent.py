@@ -32,6 +32,8 @@ Please structure your explanation as follows:
 - Identify common misunderstandings students might have about this topic.
 - Provide clear explanations to correct these misconceptions.
 
+
+Important: Don't ask for a follow-up question.
 ---
 Student Details:
 - Grade Level: {grade_level}
@@ -62,6 +64,9 @@ Please structure your explanation as follows:
 4. Potential Misconceptions & Clarifications:
 - Identify common misunderstandings students might have about this topic.
 - Provide clear explanations to correct these misconceptions.
+
+
+Important: Don't ask for a follow-up question.
 
 ---
 **Student Details:**

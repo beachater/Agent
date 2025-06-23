@@ -1,6 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
+<!-- loading spinner -->
+<div id="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(255,255,255,0.8); z-index:9999; display: flex; align-items:center; justify-content:center; flex-direction: column;">
+  <div class="spinner-border text-pink" role="status" style="width: 3rem; height: 3rem;">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <p class="mt-3 text-center fw-bold" style="color:#EC298B;">Generating your response...</p>
+</div>
+
 <style>
   body {
     background-color: #f4f7fb;
@@ -63,6 +71,11 @@
     border-color: #EC298B;
     box-shadow: 0 0 0 0.2rem rgba(236, 41, 139, 0.2);
   }
+  /* loading spinner */
+  .spinner-border.text-pink { 
+  color: #EC298B;
+}
+
 </style>
 
 <div class="container py-5">
@@ -126,6 +139,13 @@
     const type = this.value;
     document.getElementById('topic-input').classList.toggle('d-none', type === 'pdf');
     document.getElementById('pdf-input').classList.toggle('d-none', type === 'topic');
+  });
+</script>
+
+<!-- loading spinner -->
+<script>
+  document.querySelector('form[action="{{ url('/tutor') }}"]').addEventListener('submit', function () {
+    document.getElementById('loading-overlay').style.display = 'flex';
   });
 </script>
 @endsection

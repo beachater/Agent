@@ -69,3 +69,6 @@ class TutorController extends Controller
         return view('tutor', ['response' => $response->json()['output'] ?? 'No output']);
     }
 }
+
+
+// http://0.0.0.0:5001/tutor

@@ -104,13 +104,13 @@
     <div class="row gx-4">
   <div class="col-md-6">
     <div class="tool-item">
-      <h5>🔤 Text Leveler</h5>
+      <h5>🔤<a href="http://192.168.50.144:8000/leveler" target="_blank">Text Leveler</h5>
       <p>Adjust the reading difficulty of any text to match your comfort and comprehension level.</p>
     </div>
   </div>
   <div class="col-md-6">
     <div class="tool-item">
-      <h5>🧠 <a href="http://192.168.50.238:8000/" target="_blank">Text Summarizer</a></h5>
+      <h5>🧠<a href="http://192.168.50.238:8000/" target="_blank">Text Summarizer</a></h5>
       <p>Generate clear, concise summaries of longer texts to improve understanding and retention.</p>
     </div>
   </div>
@@ -125,7 +125,7 @@
   </div>
   <div class="col-md-6">
     <div class="tool-item">
-      <h5>♻️ Text Rewriter</h5>
+      <h5>♻️ <a href="http://192.168.50.123:8000/rewriter" target="_blank"> Text Rewriter</h5>
       <p>Rephrase sentences and paragraphs while maintaining original meaning — useful for revision and learning new ways to express ideas.</p>
     </div>
   </div>
