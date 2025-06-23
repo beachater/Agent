@@ -119,15 +119,25 @@
         <form method="POST" action="/leveler" enctype="multipart/form-data">
             @csrf
 
-            <!-- Input Text (optional instead of PDF) -->
+            <!-- Input Type Selection -->
             <div class="mb-4">
-                <label for="input_text" class="form-label">Enter Text (optional)</label>
-                <textarea class="form-control" id="input_text" name="input_text" rows="6"
+                <label for="input_mode" class="form-label">Select Input Type</label>
+                <select class="form-select" id="input_mode" name="input_mode" required onchange="toggleInputFields()">
+                    <option value="" disabled selected>Choose input method</option>
+                    <option value="text">Text</option>
+                    <option value="pdf">PDF</option>
+                </select>
+            </div>
+
+            <!-- Input Text Field -->
+            <div class="mb-4" id="text_input_group" style="display: none;">
+                <label for="input_type" class="form-label">Enter Text</label>
+                <textarea class="form-control" id="input_type" name="input_type" rows="6"
                     placeholder="Paste or type text here if you're not uploading a PDF..."></textarea>
             </div>
 
-            <!-- Upload PDF -->
-            <div class="mb-4">
+            <!-- PDF Upload Field -->
+            <div class="mb-4" id="pdf_input_group" style="display: none;">
                 <label for="pdf" class="form-label">Upload PDF</label>
                 <input type="file" class="form-control" id="pdf" name="pdf" accept="application/pdf" />
             </div>
@@ -169,6 +179,26 @@
             <textarea id="generate_output" class="form-control" name="generate_output" rows="10" readonly>{{ $response ?? '' }}</textarea>
         </div>
     </div>
+
+    <script>
+        function toggleInputFields() {
+            const mode = document.getElementById('input_mode').value;
+            const textGroup = document.getElementById('text_input_group');
+            const pdfGroup = document.getElementById('pdf_input_group');
+
+            if (mode === 'text') {
+                textGroup.style.display = 'block';
+                pdfGroup.style.display = 'none';
+            } else if (mode === 'pdf') {
+                textGroup.style.display = 'none';
+                pdfGroup.style.display = 'block';
+            } else {
+                textGroup.style.display = 'none';
+                pdfGroup.style.display = 'none';
+            }
+        }
+    </script>
+
 </body>
 
 </html>

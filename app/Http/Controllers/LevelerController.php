@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Symfony\Component\Process\Process;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
@@ -34,6 +35,8 @@ class LevelerController extends Controller
             '--input-type', $validated['input_type'] ?? '',
             '--pdf-path', $validated['pdf_path'] ?? '',
         ];
+
+        $python = base_path('storage/app/python/tutor_agent.py');
 
         // Send request to the FastAPI server
         $response = Http::timeout(0)->post('http://192.168.50.144:5001/leveler', [

@@ -5,10 +5,6 @@ from langchain_community.llms import Ollama # type: ignore
 from langchain_core.prompts import ChatPromptTemplate # type: ignore
 from langchain_community.document_loaders.pdf import PyPDFLoader # type: ignore
 import shutil, os, re, tempfile, uvicorn, traceback # type: ignore
-import os 
-import uvicorn
-import re 
-import traceback
 
 manual_topic_template = """
 You are an experienced and friendly virtual tutor who helps students understand academic topics clearly and effectively.
