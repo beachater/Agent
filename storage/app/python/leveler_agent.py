@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, Form # type: ignore
+from fastapi import FastAPI, HTTPException, UploadFile, Form, File # type: ignore
 from fastapi.responses import JSONResponse # type: ignore
 from pydantic import BaseModel, ValidationError # type: ignore
 from langchain_community.llms import Ollama # type: ignore
@@ -55,7 +55,8 @@ manual_prompt = ChatPromptTemplate.from_template(manual_topic_template)
 pdf_prompt = ChatPromptTemplate.from_template(pdf_topic_template)
 
 class LevelerInput(BaseModel):
-    input_type: str = ""
+    input_type: str
+    topic: str = ""
     pdf_path: str = ""
     grade_level: str
     learning_speed: str
@@ -74,21 +75,35 @@ def clean_output(text: str) -> str:
     text = re.sub(r"^\s*[\*\-]\s*", "", text, flags=re.MULTILINE)
     return text.strip()
 
-def generate_output(input_type: str, pdf_path: str = "", grade_level: str = "", learning_speed: str = "") -> str:
+async def generate_output(
+    input_type: str,
+    grade_level: str,
+    learning_speed: str,
+    topic: str = "",
+    pdf_file: UploadFile = None,
+):
     if input_type == "pdf":
-        topic = load_pdf_content(pdf_path)
+        # Save PDF temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            content = await pdf_file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        topic = load_pdf_content(tmp_path)
+        os.unlink(tmp_path)  # Delete file after use
         prompt = pdf_prompt
     else:
-        topic = input_type  # ← manual topic entered directly
+        if not topic.strip():
+            raise ValueError("Text input is required")
         prompt = manual_prompt
 
     # Compose input dict for prompt
     prompt_input = {
-        "grade_level": grade_level,
-        "learning_speed": learning_speed,
-        "topic": topic
+    "topic": topic,
+    "grade_level": grade_level,
+    "learning_speed": learning_speed
     }
-
+    
     chain = prompt | model
     result = chain.invoke(prompt_input)
     return clean_output(result)
@@ -96,19 +111,31 @@ def generate_output(input_type: str, pdf_path: str = "", grade_level: str = "", 
 app = FastAPI()
 
 @app.post("/leveler")
-async def leveler_api(input: LevelerInput):
+async def leveler_api(
+    input_type: str = Form(...),
+    topic: str = Form(""),
+    pdf_file: UploadFile = File(None),
+    grade_level: str = Form(...),
+    learning_speed: str = Form(...),
+):
+    
     try:
-        output = generate_output(
-            input_type=input.input_type,
-            pdf_path=input.pdf_path,
-            grade_level=input.grade_level,
-            learning_speed=input.learning_speed
+        if input_type == "pdf" and not pdf_file:
+            raise HTTPException(status_code=400, detail="PDF file required for PDF input_type")
+
+        output = await generate_output(
+            input_type=input_type,
+            topic=topic,
+            pdf_file=pdf_file,
+            grade_level=grade_level,
+            learning_speed=learning_speed,
         )
+
         return {"output": output}
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.errors())
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        traceback_str = traceback.format_exc()
+        print(traceback_str)
+        return JSONResponse(status_code=500, content={"detail": str(e), "trace": traceback_str})
 
 if __name__ == "__main__":
     uvicorn.run("leveler_agent:app", host="127.0.0.1", port=5001, reload=True)

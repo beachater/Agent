@@ -16,38 +16,53 @@ class LevelerController extends Controller
 
     public function processForm(Request $request)
     {
-
         set_time_limit(0);
-        
+
         $validated = $request->validate([
+            'input_type' => 'required|in:topic,pdf',
             'grade_level' => 'required|string',
             'learning_speed' => 'required|string',
-            'input_type' => 'nullable|string',
-            'pdf_path' => 'nullable|string',
+            'topic' => 'nullable|string',
+            'pdf_file' => 'nullable|file|mimes:pdf|max:5120',
         ]);
 
-        $python = base_path('storage/app/python/leveler_agent.py');
-
-        $args = [
-            'python', $python,
-            '--grade-level', $validated['grade_level'],
-            '--learning-speed', $validated['learning_speed'],
-            '--input-type', $validated['input_type'] ?? '',
-            '--pdf-path', $validated['pdf_path'] ?? '',
+        $multipartData = [
+            [
+                'name' => 'input_type',
+                'contents' => $validated['input_type']
+            ],
+            [
+                'name' => 'grade_level',
+                'contents' => $validated['grade_level']
+            ],
+            [
+                'name' => 'learning_speed',
+                'contents' => $validated['learning_speed']
+            ],
+            [
+                'name' => 'topic',
+                'contents' => $validated['topic'] ?? ''
+            ],
         ];
 
-        $python = base_path('storage/app/python/tutor_agent.py');
+        if ($request->hasFile('pdf_file')) {
+            $pdf = $request->file('pdf_file');
+            $multipartData[] = [
+                'name'     => 'pdf_file',
+                'contents' => fopen($pdf->getPathname(), 'r'),
+                'filename' => $pdf->getClientOriginalName(),
+                'headers'  => [
+                    'Content-Type' => $pdf->getMimeType()
+                ],
+            ];
+        }
 
-        // Send request to the FastAPI server
-        $response = Http::timeout(0)->post('http://192.168.50.144:5001/leveler', [
-            'grade_level' => $validated['grade_level'],
-            'learning_speed' => $validated['learning_speed'],
-            'input_type' => $validated['input_type'] ?? '',
-            'pdf_path' => $pdfPath['pdf_path'] ?? '',
-        ]);
+        $response = Http::timeout(0)
+            ->asMultipart()
+            ->post('http://192.168.50.144:5001/leveler', $multipartData);
 
         if ($response->failed()) {
-            return back()->withErrors(['error' => 'Failed to get response from AI service']);
+            return back()->withErrors(['error' => 'Python API failed: ' . $response->body()]);
         }
 
         return view('leveler', ['response' => $response->json()['output'] ?? 'No output']);

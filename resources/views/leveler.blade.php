@@ -121,25 +121,25 @@
 
             <!-- Input Type Selection -->
             <div class="mb-4">
-                <label for="input_mode" class="form-label">Select Input Type</label>
-                <select class="form-select" id="input_mode" name="input_mode" required onchange="toggleInputFields()">
+                <label for="input_type" class="form-label">Select Input Type</label>
+                <select class="form-select" id="input_type" name="input_type" required onchange="toggleInputFields()">
                     <option value="" disabled selected>Choose input method</option>
-                    <option value="text">Text</option>
+                    <option value="topic">Text</option>
                     <option value="pdf">PDF</option>
                 </select>
             </div>
 
             <!-- Input Text Field -->
             <div class="mb-4" id="text_input_group" style="display: none;">
-                <label for="input_type" class="form-label">Enter Text</label>
-                <textarea class="form-control" id="input_type" name="input_type" rows="6"
+                <label for="topic" class="form-label">Enter Text</label>
+                <textarea class="form-control" id="topic" name="topic" rows="6"
                     placeholder="Paste or type text here if you're not uploading a PDF..."></textarea>
             </div>
 
             <!-- PDF Upload Field -->
             <div class="mb-4" id="pdf_input_group" style="display: none;">
                 <label for="pdf" class="form-label">Upload PDF</label>
-                <input type="file" class="form-control" id="pdf" name="pdf" accept="application/pdf" />
+                <input type="file" class="form-control" id="pdf_file" name="pdf_file" accept="application/pdf" />
             </div>
 
             <!-- Grade Level Selection -->
@@ -182,11 +182,11 @@
 
     <script>
         function toggleInputFields() {
-            const mode = document.getElementById('input_mode').value;
+            const mode = document.getElementById('input_type').value;
             const textGroup = document.getElementById('text_input_group');
             const pdfGroup = document.getElementById('pdf_input_group');
 
-            if (mode === 'text') {
+            if (mode === 'topic') {
                 textGroup.style.display = 'block';
                 pdfGroup.style.display = 'none';
             } else if (mode === 'pdf') {
@@ -198,6 +198,13 @@
             }
         }
     </script>
+
+    <!-- loading spinner -->
+    {{-- <script>
+        document.querySelector('form[action="{{ url('/leveler') }}"]').addEventListener('submit', function() {
+            document.getElementById('loading-overlay').style.display = 'flex';
+        });
+    </script> --}}
 
 </body>
 
