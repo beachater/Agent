@@ -2,7 +2,7 @@
 
 @section('content')
 <!-- loading spinner -->
-<div id="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(255,255,255,0.8); z-index:9999; display: flex; align-items:center; justify-content:center; flex-direction: column;">
+<div id="loading-overlay">
   <div class="spinner-border text-pink" role="status" style="width: 3rem; height: 3rem;">
     <span class="visually-hidden">Loading...</span>
   </div>
@@ -75,6 +75,19 @@
   .spinner-border.text-pink { 
   color: #EC298B;
 }
+#loading-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255,255,255,0.8);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
 
 </style>
 
@@ -123,8 +136,20 @@
         @if(isset($response))
           <hr class="my-4">
           <h5 class="fw-bold" style="color:#EC298B;">AI Tutor Response:</h5>
-          <pre>{{ $response }}</pre>
+          <pre id="conversation-thread">{{ $response }}</pre>
+
+          <!-- Follow-up message form -->
+          <form id="followup-form" class="mt-4">
+            @csrf
+            <input type="text" name="message" id="message" class="form-control mb-2" placeholder="Ask a follow-up..." required>
+            <button type="submit" class="btn btn-sm ck-btn">Send</button>
+            <div id="followup-loader" class="mt-3 d-none">
+              <div class="spinner-border text-pink" role="status" style="width: 1.5rem; height: 1.5rem;"></div>
+              <p class="fw-semibold mt-2 text-muted">Thinking...</p>
+            </div>
+          </form>
         @endif
+
 
         @error('error')
           <div class="alert alert-danger mt-3">{{ $message }}</div>
@@ -133,6 +158,11 @@
     </div>
   </div>
 </div>
+
+<form method="POST" action="{{ url('/tutor/reset') }}">
+    @csrf
+    <button class="btn btn-outline-secondary btn-sm mt-2">Reset Conversation</button>
+</form>
 
 <script>
   document.getElementById('input_type').addEventListener('change', function () {
@@ -148,4 +178,49 @@
     document.getElementById('loading-overlay').style.display = 'flex';
   });
 </script>
+
+<script>
+document.getElementById('followup-form')?.addEventListener('submit', function (e) {
+  e.preventDefault();
+
+  const messageInput = document.getElementById('message');
+  const message = messageInput.value;
+  const thread = document.getElementById('conversation-thread');
+  const loader = document.getElementById('followup-loader');
+
+  if (!message.trim()) return;
+
+  loader.classList.remove('d-none');
+  messageInput.disabled = true;
+
+  const formData = new FormData();
+  formData.append('message', message);
+
+  fetch("{{ url('/tutor/followup') }}", {
+    method: "POST",
+    headers: {
+      "X-CSRF-TOKEN": '{{ csrf_token() }}'
+    },
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.output) {
+      thread.textContent += `\n\nUser: ${message}\nAI: ${data.output}`;
+      messageInput.value = "";
+    } else {
+      alert("Something went wrong.");
+    }
+  })
+  .catch(err => {
+    alert("Error: " + err);
+  })
+  .finally(() => {
+    loader.classList.add('d-none');
+    messageInput.disabled = false;
+  });
+});
+
+</script>
+
 @endsection

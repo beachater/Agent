@@ -11,6 +11,7 @@ async def tutor_endpoint(
     input_type: str = Form(...),
     topic: str = Form(""),
     add_cont: str = Form(""),
+    conversation_history: str =Form(""),
     pdf_file: UploadFile = None
 ):
     try:
@@ -22,6 +23,7 @@ async def tutor_endpoint(
             input_type=input_type,
             topic=topic,
             add_cont=add_cont,
+            conversation_history=conversation_history,
             pdf_file=pdf_file
         )
 

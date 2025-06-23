@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TutorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,3 +22,7 @@ Route::get('/', function(){
     return view('home');
 });
 
+
+Route::post('/tutor/reset', 'App\Http\Controllers\TutorController@resetConversation');
+
+Route::post('/tutor/followup', [TutorController::class, 'followup']);

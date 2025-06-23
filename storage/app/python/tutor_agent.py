@@ -106,7 +106,14 @@ def clean_output(text: str) -> str:
     return text.strip()
 
 # Main function containing the tutor logic
-async def generate_output_with_file(grade_level, input_type, topic="", add_cont="", pdf_file: UploadFile = None):
+async def generate_output_with_file(
+    grade_level,
+    input_type,
+    topic="",
+    add_cont="",
+    conversation_history="",
+    pdf_file: UploadFile = None
+):
     if input_type == "pdf":
         # Save PDF temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
@@ -120,14 +127,21 @@ async def generate_output_with_file(grade_level, input_type, topic="", add_cont=
     else:
         prompt = manual_prompt
 
-    user_input = {
-        "grade_level": grade_level,
-        "input_type": input_type,
-        "topic": topic,
-        "pdf_path": "",
-        "add_cont": add_cont
-    }
+    # Combine conversation history into the prompt input manually
+    system_intro = (
+    "You are an experienced and friendly virtual tutor helping a student learn concepts clearly and deeply. "
+    "Always follow this structure: 1) Core Concept, 2) Why it Matters, 3) Related Concepts, 4) Misconceptions.\n\n"
+    )
 
-    chain = prompt | model
-    result = chain.invoke(user_input)
-    return clean_output(result)
+    # Truncate conversation if too long
+    MAX_CHARS = 2000
+    trimmed_history = conversation_history[-MAX_CHARS:] if len(conversation_history) > MAX_CHARS else conversation_history
+
+    # Final prompt fed to the model
+    chat_context = f"""{system_intro}
+    Conversation so far:
+    {trimmed_history}
+
+    User: {topic}
+    AI:"""
+
