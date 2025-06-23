@@ -16,31 +16,51 @@ class RewriterController extends Controller
     }
 
     public function processForm(Request $request)
-{
-    set_time_limit(0);
+    {
+        set_time_limit(0);
 
-    $validated = $request->validate([
-        'learning_speed' => 'required|string',
-        'input_text' => 'nullable|string',
-        'pdf' => 'nullable|file|mimes:pdf|max:10240',
-    ]);
+        $validated = $request->validate([
+            'input_type' => 'required|in:topic,pdf',
+            'learning_type' => 'required|string',
+            'topic' => 'nullable|string',
+            'pdf_file' => 'nullable|file|mimes:pdf|max:5120',
+        ]);
 
-    $pdfPath = '';
-    if ($request->hasFile('pdf')) {
-        $pdfPath = $request->file('pdf')->storeAs('pdfs', uniqid() . '.pdf');
-        $fullPdfPath = storage_path('app/' . $pdfPath);
+        $multipartData = [
+            [
+                'name' => 'input_type',
+                'contents' => $validated['input_type']
+            ],
+            [
+                'name' => 'learning_type',
+                'contents' => $validated['learning_type']
+            ],
+            [
+                'name' => 'topic',
+                'contents' => $validated['topic'] ?? ''
+            ],
+        ];
+
+        if ($request->hasFile('pdf_file')) {
+            $pdf = $request->file('pdf_file');
+            $multipartData[] = [
+                'name'     => 'pdf_file',
+                'contents' => fopen($pdf->getPathname(), 'r'),
+                'filename' => $pdf->getClientOriginalName(),
+                'headers'  => [
+                    'Content-Type' => $pdf->getMimeType()
+                ],
+            ];
+        }
+
+        $response = Http::timeout(0)
+            ->asMultipart()
+            ->post('http://192.168.50.123:5001/rewriter', $multipartData);
+
+        if ($response->failed()) {
+            return back()->withErrors(['error' => 'Python API failed: ' . $response->body()]);
+        }
+
+        return view('rewriter', ['response' => $response->json()['output'] ?? 'No output']);
     }
-
-    $response = Http::timeout(0)->post('http://192.168.50.123:5001/rewriter', [
-        'learning_speed' => $validated['learning_speed'],
-        'input_type' => $validated['input_text'] ?? '',
-        'pdf_path' => $pdfPath['pdf_path'] ?? ''
-    ]);
-
-    if ($response->failed()) {
-        return back()->withErrors(['error' => 'Python API failed: ' . $response->body()]);
-    }
-
-    return view('rewriter', ['response' => $response->json()['output'] ?? 'No output received']);
-}
 }

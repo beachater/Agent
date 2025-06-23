@@ -93,23 +93,32 @@
         <form method="POST" action="/rewriter" enctype="multipart/form-data">
             @csrf
 
-            <!-- Input Text (optional instead of PDF) -->
+            <!-- Input Type Selection -->
             <div class="mb-4">
-                <label for="input_text" class="form-label">Enter Text (optional)</label>
-                <textarea class="form-control" id="input_text" name="input_text" rows="6"
-                    placeholder="Paste or type text here if you're not uploading a PDF..."></textarea>
+                <label for="input_type" class="form-label">Select Input Type</label>
+                <select class="form-select" id="input_type" name="input_type" required onchange="toggleInputFields()">
+                    <option value="" disabled>Choose input method</option>
+                    <option value="topic">Text</option>
+                    <option value="pdf">PDF</option>
+                </select>
             </div>
 
-            <!-- Upload PDF -->
-            <div class="mb-4">
+            <!-- Input Text Field -->
+            <div class="mb-4" id="text_input_group" style="display: none;">
+                <label for="topic" class="form-label">Enter Text</label>
+                <textarea class="form-control" id="topic" name="topic" rows="6" placeholder="Paste or type text here"></textarea>
+            </div>
+
+            <!-- PDF Upload Field -->
+            <div class="mb-4" id="pdf_input_group" style="display: none;">
                 <label for="pdf" class="form-label">Upload PDF</label>
-                <input type="file" class="form-control" id="pdf" name="pdf" accept="application/pdf" />
+                <input type="file" class="form-control" id="pdf_file" name="pdf_file" accept="application/pdf" />
             </div>
 
             <!-- Learning Speed Selection -->
             <div class="mb-4">
-                <label for="learning_speed" class="form-label">Learning Pace</label>
-                <select class="form-select" id="learning_speed" name="learning_speed" required>
+                <label for="learning_type" class="form-label">Learning Pace</label>
+                <select class="form-select" id="learning_type" name="learning_type" required>
                     <option value="" disabled selected>Select learning pace</option>
                     <option value="slow">Slow Learner</option>
                     <option value="average">Average Learner</option>
@@ -130,6 +139,26 @@
             <textarea id="generate_output" class="form-control" name="generate_output" rows="10" readonly>{{ $response ?? '' }}</textarea>
         </div>
     </div>
+
+    <script>
+        function toggleInputFields() {
+            const mode = document.getElementById('input_type').value;
+            const textGroup = document.getElementById('text_input_group');
+            const pdfGroup = document.getElementById('pdf_input_group');
+
+            if (mode === 'topic') {
+                textGroup.style.display = 'block';
+                pdfGroup.style.display = 'none';
+            } else if (mode === 'pdf') {
+                textGroup.style.display = 'none';
+                pdfGroup.style.display = 'block';
+            } else {
+                textGroup.style.display = 'none';
+                pdfGroup.style.display = 'none';
+            }
+        }
+    </script>
+
 </body>
 
 </html>

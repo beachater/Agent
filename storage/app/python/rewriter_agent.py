@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, Form # type: ignore
+from fastapi import FastAPI, HTTPException, UploadFile, Form, File # type: ignore
 from fastapi.responses import JSONResponse # type: ignore
 from pydantic import BaseModel, ValidationError # type: ignore
 from langchain_community.llms import Ollama # type: ignore
@@ -53,7 +53,8 @@ manual_prompt = ChatPromptTemplate.from_template(manual_topic_template)
 pdf_prompt = ChatPromptTemplate.from_template(pdf_topic_template)
 
 class RewriterInput(BaseModel):
-    input_type: str = ""
+    input_type: str
+    topic: str = ""
     pdf_path: str = ""
     learning_type: str
 
@@ -71,17 +72,30 @@ def clean_output(text: str) -> str:
     text = re.sub(r"^\s*[\*\-]\s*", "", text, flags=re.MULTILINE)
     return text.strip()
 
-def generate_output(input_type: str, pdf_path: str =  "", learner_type: str = "") -> str:
+async def generate_output(
+    input_type: str,
+    learning_type: str,
+    topic: str = "",
+    pdf_file: UploadFile = None,
+):
     if input_type == "pdf":
-        topic = load_pdf_content(pdf_path)
+        # Save PDF temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            content = await pdf_file.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        topic = load_pdf_content(tmp_path)
+        os.unlink(tmp_path)  # Delete file after use
         prompt = pdf_prompt
     else:
-        topic = input_type  # ← manual topic entered directly
+        if not topic.strip():
+            raise ValueError("Text input is required")
         prompt = manual_prompt
 
     # Compose input dict for prompt
     prompt_input = {
-        "learner_type": learner_type,
+        "learning_type": learning_type,
         "topic": topic
     }
 
@@ -92,18 +106,28 @@ def generate_output(input_type: str, pdf_path: str =  "", learner_type: str = ""
 app = FastAPI()
 
 @app.post("/rewriter")
-async def rewriter_api(input: RewriterInput):
+async def rewriter_api(
+    input_type: str = Form(...),
+    topic: str = Form(""),
+    pdf_file: UploadFile = File(None),
+    learning_type: str = Form(...),
+):
     try:
-        output = generate_output(
-            input_type=input.input_type,
-            pdf_path=input.pdf_path,
-            learner_type=input.learner_type
+        if input_type == "pdf" and not pdf_file:
+            raise HTTPException(status_code=400, detail="PDF file required for PDF input_type")
+        
+        output = await generate_output(
+            input_type=input_type,
+            topic=topic,
+            pdf_file=pdf_file,
+            learning_type=learning_type
         )
+        
         return {"output": output}
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=e.errors())
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        traceback_str = traceback.format_exc()
+        print(traceback_str)
+        return JSONResponse(status_code=500, content={"detail": str(e), "trace": traceback_str})
 
 if __name__ == "__main__":
     uvicorn.run("rewriter_agent:app", host="127.0.0.1", port=5001, reload=True)
