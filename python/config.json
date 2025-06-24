@@ -1,0 +1,17 @@
+{
+  "model": "gemma3",
+  "profiles": {
+    "academic": {
+      "description": "Formal tone, avoid contractions, focus on technical accuracy.",
+      "instructions": "Use a formal, academic tone. Avoid contractions and colloquialisms."
+    },
+    "casual": {
+      "description": "Friendly tone, allow contractions, simpler phrasing.",
+      "instructions": "Use a casual, conversational tone. Feel free to use contractions and natural speech."
+    },
+    "concise": {
+      "description": "Very brief, to-the-point corrections.",
+      "instructions": "Keep the corrected text as concise as possible, trimming unnecessary words."
+    }
+  }
+}
