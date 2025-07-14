@@ -5,12 +5,19 @@ from pydantic import BaseModel
 from typing import Optional, List
 import httpx
 import re
+import json # Ensure json is imported for potential history parsing
 
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 
+# Import the new router
+from five_question_router import five_question_router # Assuming it's in the same directory
+
 # ───────────────── App Init ─────────────────
 app = FastAPI(debug=True)
+
+# Include the five_question_router
+app.include_router(five_question_router)
 
 # ──────────────── Grade Profiles ────────────────
 GRADE_PROFILES = {
@@ -24,16 +31,18 @@ GRADE_PROFILES = {
 # ─────────────── Request Model ───────────────
 class FiveQuestionRequest(BaseModel):
     grade_level: str
-    prompt: str
-    mode: str = "manual"      # 'manual' | 'chat'
-    history: str = "[]"       # JSON‑encoded chat history
-    message_id: int           # for chat DB
+    prompt: str # This is the main topic for manual mode, or the user's current message for chat mode
+    user_id: int # Add user_id here as it's needed for chat history
+    mode: str = "manual"        # 'manual' | 'chat'
+    history: str = "[]"         # JSON‑encoded chat history (router handles persistence)
+    message_id: int             # for chat DB
 
     @classmethod
     def as_form(
         cls,
         grade_level: str = Form(...),
         prompt: str = Form(...),
+        user_id: int = Form(...), # Include in form dependency
         mode: str = Form("manual"),
         history: str = Form("[]"),
         message_id: int = Form(...)
@@ -41,6 +50,7 @@ class FiveQuestionRequest(BaseModel):
         return cls(
             grade_level=grade_level,
             prompt=prompt,
+            user_id=user_id,
             mode=mode,
             history=history,
             message_id=message_id
@@ -62,10 +72,10 @@ Guidelines:
 - No factual-quiz or multiple-choice style.
 
 Output format (nothing else):
-1. 
-2. 
-3. 
-4. 
+1.
+2.
+3.
+4.
 5.
 """
 
@@ -74,8 +84,8 @@ def extract_questions(raw: str) -> List[str]:
     questions = re.findall(pattern, raw, flags=re.DOTALL)
     return [q.strip() for q in questions][:5]
 
-async def generate_questions(grade_level: str, prompt: str) -> List[str]:
-    instructions = build_prompt(grade_level, prompt)
+async def generate_questions(grade_level: str, topic: str) -> List[str]:
+    instructions = build_prompt(grade_level, topic)
     model = OllamaLLM(model="gemma3")
     chain = ChatPromptTemplate.from_template(instructions) | model
     result = chain.invoke({})
@@ -89,13 +99,16 @@ async def five_question_endpoint(
 ):
     try:
         if data.mode == "chat":
-            # forward to your chat server for history integration
+            # forward to your chat router for history integration
             async with httpx.AsyncClient(timeout=None) as client:
-                chat_url = "http://127.0.0.1:5002/fiveq_chat"
+                # The URL for the router endpoint within the same application
+                chat_url = "http://127.0.0.1:8000/fiveq_chat" # Assuming main app runs on port 8000
+                print(f"[DEBUG] Forwarding to chat router: Current Message='{data.prompt}' (User ID: {data.user_id}, Message ID: {data.message_id})")
                 resp = await client.post(chat_url, data={
                     "grade_level": data.grade_level,
-                    "prompt": data.prompt,
-                    "history": data.history,
+                    "prompt": data.prompt, # This is the original topic or current context
+                    "current_message": data.prompt, # The actual latest message from the user
+                    "user_id": str(data.user_id),
                     "db_message_id": str(data.message_id)
                 })
                 resp.raise_for_status()
@@ -104,14 +117,17 @@ async def five_question_endpoint(
         # manual mode: generate fresh questions
         questions = await generate_questions(data.grade_level, data.prompt)
         if len(questions) < 5:
-            raise HTTPException(500, f"Expected 5 questions, got {len(questions)}")
+            raise HTTPException(500, f"Expected 5 questions, but got {len(questions)}")
 
         return {"questions": questions}
 
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        traceback_str = traceback.format_exc()
+        print(f"[Five Question Agent Error] {e}\n{traceback_str}")
         return JSONResponse(
             status_code=500,
-            content={"detail": str(e)}
+            content={"detail": str(e), "trace": traceback_str}
         )

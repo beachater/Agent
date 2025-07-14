@@ -88,13 +88,16 @@
                         @enderror
                     </div>
 
-                    {{-- Submit button with spinner --}}
-                    <div class="d-grid d-md-flex justify-content-md-end">
+                    {{-- Submit + Clear buttons --}}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                         <button type="button" class="btn btn-outline-secondary" onclick="clearForm()">Clear</button>
+
                         <button type="submit" id="submitBtn" class="btn btn-primary px-4" disabled>
-                            <span id="btnText">Submit</span>
+                         <span id="btnText">Submit</span>
                             <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2" role="status" aria-hidden="true"></span>
-                        </button>
-                    </div>
+                                 </button>
+                                </div>
+
                 </form>
 
                 {{-- Response --}}
@@ -135,6 +138,26 @@
 
     {{-- Toggle Input + Loading Spinner --}}
     <script>
+        <script>
+    function clearForm() {
+        const inputType = document.getElementById('input_type').value;
+
+        // Clear text input
+        if (inputType === 'text') {
+            document.getElementById('text').value = '';
+        }
+
+        // Clear PDF input
+        if (inputType === 'pdf') {
+            document.getElementById('pdf').value = '';
+        }
+
+        // Reset profile selection
+        document.getElementById('profile').selectedIndex = 0;
+    }
+</script>
+
+
         function toggleInputType() {
             const inputType = document.getElementById('input_type').value;
             const textGroup = document.getElementById('text-input-group');
@@ -148,6 +171,7 @@
                 pdfGroup.classList.add('d-none');
             }
         }
+        
 
         document.addEventListener('DOMContentLoaded', function () {
             toggleInputType();
